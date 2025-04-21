@@ -8,8 +8,7 @@ import { useNotes } from '@/hooks/useNotes'
 import { useUser } from '@/hooks/useUser'
 import { useSummarizeNote } from '@/hooks/useSummarize'
 import { NoteCard } from '@/components/notes/NoteCard'
-import { NoteDialog } from '@/components/notes/NoteDialog'
-import { SummaryDialog } from '@/components/notes/SummaryDialog'
+import { NotesLayout } from '@/components/notes/NotesLayout'
 import { DeleteConfirmationDialog } from '@/components/notes/DeleteConfirmationDialog'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { Button } from '@/components/ui/button'
@@ -23,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import { cn } from '@/lib/utils'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -40,10 +40,11 @@ export default function DashboardPage() {
   } = useNotes()
   const { summarizeNote, isSummarizing } = useSummarizeNote()
 
-  // State for dialogs
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingNote, setEditingNote] = useState<Note | null>(null)
+  // State management
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null)
+  const [viewingNote, setViewingNote] = useState<Note | null>(null)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const [isCreatingNewNote, setIsCreatingNewNote] = useState(false)
   
   // Summary state
   const [summaryResult, setSummaryResult] = useState<{ 
@@ -54,73 +55,73 @@ export default function DashboardPage() {
 
   // Handlers
   const handleCreateClick = () => {
-    setEditingNote(null)
-    setIsDialogOpen(true)
+    // Create an empty note template
+    const newNoteTemplate: Note = {
+      id: 'new',
+      title: '',
+      content: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      user_id: user?.id || ''
+    };
+    
+    setViewingNote(newNoteTemplate);
+    setIsCreatingNewNote(true);
   }
 
   const handleEditClick = (note: Note) => {
-    setEditingNote(note)
-    setIsDialogOpen(true)
+    setViewingNote(note);
+  }
+
+  const handleViewClick = (note: Note) => {
+    setIsTransitioning(true);
+    // Small delay to allow for smooth transition
+    setTimeout(() => {
+      setViewingNote(note);
+      setIsTransitioning(false);
+    }, 50);
+  }
+  
+  const handleCloseViewNote = () => {
+    setIsTransitioning(true);
+    setIsCreatingNewNote(false);
+    setTimeout(() => {
+      setViewingNote(null);
+      setIsTransitioning(false);
+    }, 250);
   }
 
   const handleDeleteClick = (id: string) => {
-    setDeletingNoteId(id)
-  }
-
-  const handleNoteSubmit = (noteData: NotePayload) => {
-    if (editingNote) {
-      editNote({ id: editingNote.id, ...noteData }, {
-        onSuccess: () => setIsDialogOpen(false)
-      })
-    } else {
-      addNote(noteData, {
-        onSuccess: () => setIsDialogOpen(false)
-      })
-    }
+    setDeletingNoteId(id);
   }
 
   const handleConfirmDelete = () => {
     if (deletingNoteId) {
+      // If we're deleting the currently viewed note, close it
+      if (viewingNote && viewingNote.id === deletingNoteId) {
+        setViewingNote(null);
+      }
+      
       removeNote(deletingNoteId, {
         onSuccess: () => setDeletingNoteId(null)
-      })
+      });
     }
   }
 
-  const handleSummarizeClick = (note: Note) => {
-    // Set initial state to show loading
-    setSummaryResult({
-      noteTitle: note.title || 'Untitled Note',
-      content: null,
-      isLoading: true
-    })
-    
-    // Call the API
-    summarizeNote({ noteId: note.id }, {
-      onSuccess: (data) => {
-        setSummaryResult(prev => ({
-          ...prev!,
-          content: data.summary,
-          isLoading: false
-        }))
-      },
-      onError: (err) => {
-        let errorMessage = err.message;
-        
-        // Handle API limit errors specifically
-        if (errorMessage.includes('API usage limit') || 
-            errorMessage.includes('quota exceeded') || 
-            errorMessage.includes('payment required')) {
-          errorMessage = 'API usage limit reached. The summarization feature is temporarily unavailable.';
+  const handleSaveNote = (id: string, data: NotePayload) => {
+    if (isCreatingNewNote) {
+      // Creating a new note
+      addNote(data, {
+        onSuccess: (newNote) => {
+          setIsCreatingNewNote(false);
+          // Update the viewing note with the newly created note
+          setViewingNote(newNote);
         }
-        
-        setSummaryResult(prev => ({
-          ...prev!,
-          content: `Error: ${errorMessage}`,
-          isLoading: false
-        }))
-      }
-    })
+      });
+    } else {
+      // Updating an existing note
+      editNote({ id, ...data });
+    }
   }
 
   // Skeleton loader component for notes
@@ -138,52 +139,54 @@ export default function DashboardPage() {
       </div>
     </div>
   )
-
+  
   return (
-    <div className="container mx-auto py-6 px-4 sm:px-6 max-w-7xl">
-      <header className="sticky top-0 z-10 bg-background pb-4 pt-2 border-b">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">My Notes</h1>
-            <p className="text-muted-foreground mt-1">
-              Organize and manage your thoughts and ideas.
-            </p>
-          </div>
+    <div className="min-h-screen flex flex-col relative overflow-hidden bg-gradient-to-br from-background via-background to-background/90 stacking-context">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/3 -left-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 right-1/4 w-80 h-80 bg-primary/5 rounded-full blur-3xl"></div>
+      </div>
 
-          <div className="flex items-center gap-3">
-            <Button onClick={handleCreateClick} size="sm" className="shadow-sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Note
-            </Button>
-              
-            <ThemeToggle />
-              
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="shadow-sm">
-                  <User className="h-4 w-4" />
-                  <span className="sr-only">User menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Account</DropdownMenuLabel>
-                {user && (
-                  <DropdownMenuLabel className="font-normal text-xs truncate max-w-[200px]">
-                    {user.email}
-                  </DropdownMenuLabel>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+      {/* Header */}
+      <header className="border-b px-4 py-3 flex justify-between items-center backdrop-blur-sm bg-background/90 fixed top-0 left-0 right-0 h-[64px] z-50 shadow-sm app-header">
+        <h1 className="text-xl font-bold">Smart Notes</h1>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleCreateClick}
+            variant="default"
+            className="shadow-sm hover:shadow-md transition-shadow duration-200 flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">New Note</span>
+            <span className="sm:hidden">New</span>
+          </Button>
+          <ThemeToggle />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
+                <User className="h-5 w-5" />
+                <span className="sr-only">User menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="z-[60]">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout} className="text-destructive cursor-pointer">
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
-      <main className="py-4">
+      <main className={cn(
+        "py-8 px-4 flex-1 container transition-opacity duration-200 mt-[64px] app-main",
+        viewingNote ? "lg:opacity-0 lg:pointer-events-none" : "opacity-100",
+        isTransitioning ? "opacity-50" : ""
+      )}>
         {isLoadingNotes ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {[...Array(8)].map((_, i) => (
@@ -196,15 +199,67 @@ export default function DashboardPage() {
             <Button onClick={() => window.location.reload()} variant="outline">Try Again</Button>
           </div>
         ) : notes.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {notes.map((note) => (
-              <NoteCard
+          <div 
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 animate-fade-in"
+            style={{
+              animationDuration: '0.5s',
+              animationFillMode: 'both',
+            }}
+          >
+            {notes.map((note, index) => (
+              <div
                 key={note.id}
-                note={note}
-                onEdit={handleEditClick}
-                onDelete={handleDeleteClick}
-                onSummarize={handleSummarizeClick}
-              />
+                className="opacity-0 animate-fade-in"
+                style={{
+                  animationDelay: `${index * 0.05}s`,
+                  animationDuration: '0.5s',
+                  animationFillMode: 'forwards',
+                }}
+              >
+                <NoteCard
+                  note={note}
+                  onEdit={handleEditClick}
+                  onDelete={handleDeleteClick}
+                  onSummarize={(note) => {
+                    setViewingNote(note);
+                    
+                    // Set initial state to show loading
+                    setSummaryResult({
+                      noteTitle: note.title || 'Untitled Note',
+                      content: null,
+                      isLoading: true
+                    });
+                    
+                    // Call the API
+                    summarizeNote({ noteId: note.id }, {
+                      onSuccess: (data) => {
+                        setSummaryResult(prev => ({
+                          ...prev!,
+                          content: data.summary,
+                          isLoading: false
+                        }));
+                      },
+                      onError: (err) => {
+                        let errorMessage = err.message;
+                        
+                        // Handle API limit errors specifically
+                        if (errorMessage.includes('API usage limit') || 
+                            errorMessage.includes('quota exceeded') || 
+                            errorMessage.includes('payment required')) {
+                          errorMessage = 'API usage limit reached. The summarization feature is temporarily unavailable.';
+                        }
+                        
+                        setSummaryResult(prev => ({
+                          ...prev!,
+                          content: `Error: ${errorMessage}`,
+                          isLoading: false
+                        }));
+                      }
+                    });
+                  }}
+                  onView={handleViewClick}
+                />
+              </div>
             ))}
           </div>
         ) : (
@@ -215,7 +270,10 @@ export default function DashboardPage() {
             <p className="text-xl text-muted-foreground mb-4 text-center">
               No notes yet. Create your first one!
             </p>
-            <Button onClick={handleCreateClick} className="shadow-sm">
+            <Button 
+              onClick={handleCreateClick} 
+              className="shadow-sm hover:shadow-md transition-shadow duration-200"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Create Your First Note
             </Button>
@@ -223,16 +281,20 @@ export default function DashboardPage() {
         )}
       </main>
 
-      {/* Dialog for creating/editing notes */}
-      <NoteDialog
-        isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        noteToEdit={editingNote}
-        onSubmit={handleNoteSubmit}
-        isSaving={isCreatingNote || isUpdatingNote}
-      />
+      {/* Mobile Floating Action Button */}
+      <Button
+        onClick={handleCreateClick}
+        className={cn(
+          "fixed bottom-6 right-6 rounded-full shadow-lg w-14 h-14 p-0 md:hidden z-20",
+          "animate-pulse-subtle bg-primary hover:bg-primary/90 transition-all",
+          viewingNote ? "opacity-0 pointer-events-none" : "opacity-100"
+        )}
+      >
+        <Plus className="h-6 w-6" />
+        <span className="sr-only">New Note</span>
+      </Button>
 
-      {/* Dialog for confirming note deletion */}
+      {/* Delete confirmation dialog - keep this one as it's still useful */}
       <DeleteConfirmationDialog
         isOpen={!!deletingNoteId}
         onClose={() => setDeletingNoteId(null)}
@@ -240,14 +302,57 @@ export default function DashboardPage() {
         isDeleting={isDeletingNote}
       />
       
-      {/* Dialog for displaying note summaries */}
-      <SummaryDialog
-        isOpen={!!summaryResult}
-        onClose={() => setSummaryResult(null)}
-        noteTitle={summaryResult?.noteTitle || null}
-        summary={summaryResult?.content || null}
-        isLoading={summaryResult?.isLoading || false}
-      />
+      {/* Full screen layout for viewing, editing and summarizing notes */}
+      {(notes.length > 0 || isCreatingNewNote) && (
+        <NotesLayout
+          isActive={!!viewingNote}
+          currentNote={viewingNote}
+          allNotes={notes}
+          onClose={handleCloseViewNote}
+          onEdit={handleEditClick}
+          onSummarize={(note) => {
+            // Set initial state to show loading
+            setSummaryResult({
+              noteTitle: note.title || 'Untitled Note',
+              content: null,
+              isLoading: true
+            });
+            
+            // Call the API
+            summarizeNote({ noteId: note.id }, {
+              onSuccess: (data) => {
+                setSummaryResult(prev => ({
+                  ...prev!,
+                  content: data.summary,
+                  isLoading: false
+                }));
+              },
+              onError: (err) => {
+                let errorMessage = err.message;
+                
+                // Handle API limit errors specifically
+                if (errorMessage.includes('API usage limit') || 
+                    errorMessage.includes('quota exceeded') || 
+                    errorMessage.includes('payment required')) {
+                  errorMessage = 'API usage limit reached. The summarization feature is temporarily unavailable.';
+                }
+                
+                setSummaryResult(prev => ({
+                  ...prev!,
+                  content: `Error: ${errorMessage}`,
+                  isLoading: false
+                }));
+              }
+            });
+          }}
+          onSelectNote={setViewingNote}
+          onSaveNote={handleSaveNote}
+          isSaving={isCreatingNote || isUpdatingNote}
+          isSummarizing={summaryResult?.isLoading || false}
+          summary={summaryResult?.content || null}
+          isCreatingNewNote={isCreatingNewNote}
+        />
+      )}
     </div>
   )
 } 
