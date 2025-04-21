@@ -18,8 +18,8 @@ export async function createClient() {
         set(name, value, options) {
           cookieStore.set(name, value, options)
         },
-        remove(name, options) {
-          cookieStore.set(name, '', { ...options, maxAge: 0 })
+        remove(name, _options) {
+          cookieStore.set(name, '', { maxAge: 0 })
         },
       },
     }

@@ -33,7 +33,7 @@ export async function updateSession(request: NextRequest) {
             ...options,
           })
         },
-        remove(name, options) {
+        remove(name, _options) {
           // Remove cookies by setting them with an expired date
           request.cookies.delete(name);
           response.cookies.delete(name);

@@ -44,7 +44,7 @@ const summarizeNoteApiCall = async (payload: SummarizePayload): Promise<Summariz
 export const useSummarizeNote = () => {
   const { mutate: summarizeNote, isPending: isSummarizing, data: summaryData, error } = useMutation<SummarizeResponse, Error, SummarizePayload>({
     mutationFn: summarizeNoteApiCall,
-    onSuccess: () => {
+    onSuccess: (_data) => {
       // Summary data is available in `data.summary`
       // We don't show a global toast here, let the component decide how to display it.
     },
