@@ -129,7 +129,7 @@ export async function POST(request: Request) {
         // Try to get the error as JSON first
         errorJson = await response.json();
         errorText = JSON.stringify(errorJson);
-      } catch (e) {
+      } catch (_) {
         // If that fails, get it as text
         errorText = await response.text();
       }

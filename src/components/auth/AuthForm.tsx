@@ -1,19 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { toast } from 'sonner'
-import { 
+import { Eye, EyeOff } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
   Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter
 } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
@@ -22,13 +23,16 @@ type AuthFormProps = {
   mode: 'login' | 'signup'
 }
 
+type Provider = 'google' | 'github';
+
 export function AuthForm({ mode }: AuthFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
   const router = useRouter()
   
-  const supabase = createClient()
+  const supabase = createClientComponentClient()
   
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,11 +67,9 @@ export function AuthForm({ mode }: AuthFormProps) {
           description: 'Check your email for verification link.',
         })
       }
-    } catch (err: any) {
-      toast.error('Authentication failed', {
-        description: err.message || 'An error occurred during authentication',
-      })
-      console.error(err)
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -85,15 +87,67 @@ export function AuthForm({ mode }: AuthFormProps) {
       })
       
       if (error) throw error
-    } catch (err: any) {
-      toast.error('Google authentication failed', {
-        description: err.message || 'An error occurred during Google authentication',
-      })
-      console.error(err)
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
   }
+  
+  // Handle OAuth sign in (Google, GitHub, etc.)
+  const handleOAuthSignIn = async (provider: Provider) => {
+    try {
+      setIsLoading(true);
+      setAuthError(null);
+      
+      // Sign in with the provider
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${location.origin}/auth/callback`,
+        },
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // No state update needed here as we're being redirected
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      setAuthError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle email sign in
+  const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    try {
+      setIsLoading(true);
+      setAuthError(null);
+      
+      // Sign in with email
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      router.push('/dashboard');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      setAuthError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   return (
     <Card className="w-full max-w-md">
@@ -202,6 +256,17 @@ export function AuthForm({ mode }: AuthFormProps) {
           )}
         </div>
       </CardFooter>
+      <div className="text-center text-sm text-muted-foreground mt-4">
+        By continuing, you agree to our{' '}
+        <Link href="/terms" className="underline underline-offset-4 hover:text-primary">
+          Terms of Service
+        </Link>{' '}
+        &amp;{' '}
+        <Link href="/privacy" className="underline underline-offset-4 hover:text-primary">
+          Privacy Policy
+        </Link>
+        .
+      </div>
     </Card>
   )
 } 

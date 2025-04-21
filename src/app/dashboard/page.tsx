@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Note } from '@/types'
 import { NotePayload } from '@/lib/notes-api'
 import { useNotes } from '@/hooks/useNotes'
@@ -25,8 +24,7 @@ import {
 import { cn } from '@/lib/utils'
 
 export default function DashboardPage() {
-  const router = useRouter()
-  const { user, isLoading: isLoadingUser, logout } = useUser()
+  const { user, logout } = useUser()
   const {
     notes,
     isLoadingNotes,
@@ -38,7 +36,7 @@ export default function DashboardPage() {
     removeNote,
     isDeletingNote
   } = useNotes()
-  const { summarizeNote, isSummarizing } = useSummarizeNote()
+  const { summarizeNote } = useSummarizeNote()
 
   // State management
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null)
