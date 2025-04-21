@@ -23,7 +23,7 @@ const summarizeNoteApiCall = async (payload: SummarizePayload): Promise<Summariz
     try {
       // Try to parse JSON error
       errorData = await response.json();
-    } catch (_) {
+    } catch (_e) {
       // If JSON parsing fails, fallback to error object
       errorData = { error: `Request failed with status ${response.status}` };
     }
