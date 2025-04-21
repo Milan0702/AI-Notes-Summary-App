@@ -45,7 +45,7 @@ export const useNotes = () => {
       // Optionally invalidate if needed
       // queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
     },
-     onError: (error, _variables) => {
+     onError: (error) => {
         console.error("Error updating note:", error);
       toast.error(`Failed to update note: ${error.message}`);
       // Optionally invalidate to roll back optimistic update
@@ -65,7 +65,7 @@ export const useNotes = () => {
       // Optionally invalidate if needed
       // queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
     },
-     onError: (error, _variables) => {
+     onError: (error) => {
          console.error("Error deleting note:", error);
        toast.error(`Failed to delete note: ${error.message}`);
         // Optionally invalidate to ensure UI consistency

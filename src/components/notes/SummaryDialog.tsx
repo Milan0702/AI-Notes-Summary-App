@@ -49,7 +49,7 @@ export function SummaryDialog({
               <AlertTriangle className="h-8 w-8 text-yellow-500" />
               <h3 className="font-medium">AI Service Limit Reached</h3>
               <p className="text-sm text-muted-foreground">
-                We've reached the usage limit for our AI service. Please try again later.
+                We&#39;ve reached the usage limit for our AI service. Please try again later.
               </p>
             </div>
           ) : isError ? (

@@ -1,6 +1,5 @@
 // src/lib/supabase/middleware.ts
-import { createServerClient } from '@supabase/ssr'
-// import { type CookieOptions } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
@@ -19,7 +18,10 @@ export async function updateSession(request: NextRequest) {
         get(name) {
           return request.cookies.get(name)?.value
         },
-        set(name, value, options) {
+        set(name, value, 
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          options: CookieOptions
+        ) {
           // Set the cookie in the request (for logging purposes)
           request.cookies.set({
             name,
@@ -34,7 +36,10 @@ export async function updateSession(request: NextRequest) {
             ...options,
           })
         },
-        remove(name, _options) {
+        remove(name, 
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          _options: CookieOptions
+        ) {
           // Remove cookies by setting them with an expired date
           request.cookies.delete(name);
           response.cookies.delete(name);

@@ -1,6 +1,5 @@
 // src/lib/supabase/server.ts
-import { createServerClient } from '@supabase/ssr'
-// import { type CookieOptions } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export async function createClient() {
@@ -16,10 +15,16 @@ export async function createClient() {
         get(name) {
           return cookieStore.get(name)?.value
         },
-        set(name, value, options) {
+        set(name, value, 
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          options: CookieOptions
+        ) {
           cookieStore.set(name, value, options)
         },
-        remove(name, _options) {
+        remove(name, 
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          _options: CookieOptions
+        ) {
           cookieStore.set(name, '', { maxAge: 0 })
         },
       },
