@@ -1,6 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Note } from '@/types';
 
 type SummarizePayload = {
   noteId: string;
@@ -24,7 +23,7 @@ const summarizeNoteApiCall = async (payload: SummarizePayload): Promise<Summariz
     try {
       // Try to parse JSON error
       errorData = await response.json();
-    } catch (e) {
+    } catch (_) {
       // If JSON parsing fails, fallback to error object
       errorData = { error: `Request failed with status ${response.status}` };
     }
@@ -45,7 +44,7 @@ const summarizeNoteApiCall = async (payload: SummarizePayload): Promise<Summariz
 export const useSummarizeNote = () => {
   const { mutate: summarizeNote, isPending: isSummarizing, data: summaryData, error } = useMutation<SummarizeResponse, Error, SummarizePayload>({
     mutationFn: summarizeNoteApiCall,
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Summary data is available in `data.summary`
       // We don't show a global toast here, let the component decide how to display it.
     },

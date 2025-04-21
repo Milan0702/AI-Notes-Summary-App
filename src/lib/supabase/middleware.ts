@@ -1,5 +1,5 @@
 // src/lib/supabase/middleware.ts
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
@@ -34,21 +34,9 @@ export async function updateSession(request: NextRequest) {
           })
         },
         remove(name, options) {
-          // Remove the cookie from request
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-            maxAge: 0,
-          })
-          
-          // Remove the cookie from response
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-            maxAge: 0,
-          })
+          // Remove cookies by setting them with an expired date
+          request.cookies.delete(name);
+          response.cookies.delete(name);
         },
       },
     }
@@ -58,4 +46,4 @@ export async function updateSession(request: NextRequest) {
   await supabase.auth.getUser()
 
   return response
-} 
+}
