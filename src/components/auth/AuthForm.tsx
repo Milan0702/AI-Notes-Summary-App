@@ -40,7 +40,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     
     try {
       if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error, data } = await supabase.auth.signInWithPassword({
           email,
           password
         })
@@ -51,9 +51,13 @@ export function AuthForm({ mode }: AuthFormProps) {
           description: 'Redirecting to your dashboard...',
         })
         
-        router.push('/dashboard')
+        // Ensure user is logged in before redirecting
+        if (data?.session) {
+          // Use replace instead of push to avoid back button issues
+          router.replace('/dashboard')
+        }
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { error, data } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -66,6 +70,13 @@ export function AuthForm({ mode }: AuthFormProps) {
         toast.success('Account created', {
           description: 'Check your email for verification link.',
         })
+        
+        // If auto-confirmation is enabled (development environments)
+        if (data?.session) {
+          setTimeout(() => {
+            router.replace('/dashboard')
+          }, 2000)
+        }
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
@@ -82,7 +93,11 @@ export function AuthForm({ mode }: AuthFormProps) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            // Force the redirect to dashboard after authentication
+            redirect_to: `${window.location.origin}/dashboard`
+          }
         }
       })
       
