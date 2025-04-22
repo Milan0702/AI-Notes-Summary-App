@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Note } from '@/types'
@@ -25,7 +25,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 
-export default function DashboardPage() {
+// Dashboard content component that uses useSearchParams
+function DashboardContent() {
   const { user, logout, isLoading: isUserLoading } = useUser()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -407,4 +408,23 @@ export default function DashboardPage() {
       )}
     </div>
   )
+}
+
+// Loading fallback
+function DashboardLoading() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center">
+      <div className="animate-pulse rounded-full h-20 w-20 border-4 border-primary border-t-transparent"></div>
+      <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
+    </div>
+  );
+}
+
+// Main Dashboard component with Suspense boundary
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <DashboardContent />
+    </Suspense>
+  );
 } 
