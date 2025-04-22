@@ -158,7 +158,6 @@ export async function POST(request: Request) {
 
     // 5. Return Summary
     return NextResponse.json({ summary });
-
   } catch (error: unknown) {
     console.error("Error in /api/summarize:", error);
     
