@@ -2,29 +2,15 @@
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/ThemeToggle'
+import { AppHeader } from '@/components/AppHeader'
 
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Header */}
-      <header className="border-b px-4 py-3 flex justify-between items-center backdrop-blur-sm bg-background/90 top-0 left-0 right-0 h-[64px] z-50 shadow-sm app-header">
-        <h1 className="text-xl font-bold">Smart Notes</h1>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <div className="flex gap-2">
-            <Link href="/login" passHref>
-              <Button variant="ghost" size="sm">Login</Button>
-            </Link>
-            <Link href="/signup" passHref>
-              <Button variant="default" size="sm">Sign Up</Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-16">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-16 mt-[64px]">
         <div className="max-w-2xl w-full space-y-8 text-center">
           <div className="space-y-3">
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight">AI Notes App</h1>

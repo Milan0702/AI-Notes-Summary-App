@@ -11,23 +11,15 @@ import { useSummarizeNote } from '@/hooks/useSummarize'
 import { NoteCard } from '@/components/notes/NoteCard'
 import { NotesLayout } from '@/components/notes/NotesLayout'
 import { DeleteConfirmationDialog } from '@/components/notes/DeleteConfirmationDialog'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, User, LogOut } from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu'
+import { Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AppHeader } from '@/components/AppHeader'
 
 // Dashboard content component that uses useSearchParams
 function DashboardContent() {
-  const { user, logout, isLoading: isUserLoading } = useUser()
+  const { user, isLoading: isUserLoading } = useUser()
   const searchParams = useSearchParams()
   const router = useRouter()
   const {
@@ -196,9 +188,15 @@ function DashboardContent() {
       </div>
 
       {/* Header */}
-      <header className="border-b px-4 py-3 flex justify-between items-center backdrop-blur-sm bg-background/90 fixed top-0 left-0 right-0 h-[64px] z-50 shadow-sm app-header">
-        <h1 className="text-xl font-bold">Smart Notes</h1>
-        <div className="flex items-center gap-2">
+      <AppHeader showAuthButtons={false} />
+
+      <main className={cn(
+        "py-8 px-4 flex-1 container transition-opacity duration-200 mt-[64px] app-main",
+        viewingNote ? "lg:opacity-0 lg:pointer-events-none" : "opacity-100",
+        isTransitioning ? "opacity-50" : ""
+      )}>
+        {/* New Note button at the top */}
+        <div className="mb-6 flex justify-end">
           <Button
             onClick={handleCreateClick}
             variant="default"
@@ -208,38 +206,8 @@ function DashboardContent() {
             <span className="hidden sm:inline">New Note</span>
             <span className="sm:hidden">New</span>
           </Button>
-          <ThemeToggle />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
-                <User className="h-5 w-5" />
-                <span className="sr-only">User menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="z-[60]">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              {user?.email && (
-                <>
-                  <span className="px-2 py-1 text-xs text-muted-foreground block truncate max-w-[200px]">
-                    {user.email}
-                  </span>
-                  <DropdownMenuSeparator />
-                </>
-              )}
-              <DropdownMenuItem onClick={logout} className="text-destructive cursor-pointer">
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
-      </header>
-
-      <main className={cn(
-        "py-8 px-4 flex-1 container transition-opacity duration-200 mt-[64px] app-main",
-        viewingNote ? "lg:opacity-0 lg:pointer-events-none" : "opacity-100",
-        isTransitioning ? "opacity-50" : ""
-      )}>
+        
         {isLoadingNotes ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {[...Array(8)].map((_, i) => (
