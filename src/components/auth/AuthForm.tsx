@@ -70,8 +70,16 @@ export function AuthForm({ mode }: AuthFormProps) {
         }
       }
     } catch (err: unknown) {
+<<<<<<< HEAD
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
       toast.error(errorMessage)
+=======
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred during authentication';
+      toast.error('Authentication failed', {
+        description: errorMessage,
+      })
+      console.error(err)
+>>>>>>> 81d56dd (Fixed unused code issues)
     } finally {
       setIsLoading(false)
     }
@@ -90,8 +98,16 @@ export function AuthForm({ mode }: AuthFormProps) {
       
       if (error) throw error
     } catch (err: unknown) {
+<<<<<<< HEAD
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
       toast.error(errorMessage)
+=======
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred during Google authentication';
+      toast.error('Google authentication failed', {
+        description: errorMessage,
+      })
+      console.error(err)
+>>>>>>> 81d56dd (Fixed unused code issues)
     } finally {
       setIsLoading(false)
     }

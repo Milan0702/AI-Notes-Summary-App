@@ -50,7 +50,7 @@ export function SummaryDialog({
               <h3 className="font-medium">AI Service Limit Reached</h3>
               {/* eslint-disable-next-line react/no-unescaped-entities */}
               <p className="text-sm text-muted-foreground">
-                We've reached the usage limit for our AI service. Please try again later.
+                We&apos;ve reached the usage limit for our AI service. Please try again later.
               </p>
             </div>
           ) : isError ? (

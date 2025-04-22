@@ -32,7 +32,6 @@ export function NotesLayout({
   currentNote,
   allNotes,
   onClose,
-  onEdit,
   onSummarize,
   onSelectNote,
   onSaveNote,
