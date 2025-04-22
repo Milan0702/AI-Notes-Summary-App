@@ -48,7 +48,7 @@ export function SummaryDialog({
             <div className="flex flex-col items-center justify-center text-center p-4 space-y-3">
               <AlertTriangle className="h-8 w-8 text-yellow-500" />
               <h3 className="font-medium">AI Service Limit Reached</h3>
-              {/* eslint-disable-next-line react/no-unescaped-entities */}
+              { }
               <p className="text-sm text-muted-foreground">
                 We&apos;ve reached the usage limit for our AI service. Please try again later.
               </p>
