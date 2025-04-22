@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { User } from '@supabase/supabase-js'
+import { User, Session, AuthChangeEvent } from '@supabase/supabase-js'
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null)
@@ -15,6 +15,7 @@ export function useUser() {
   const refreshUser = useCallback(async () => {
     setIsLoading(true)
     try {
+      console.log('Refreshing user session...')
       const { data: { user }, error } = await supabase.auth.getUser()
       
       if (error) {
@@ -23,8 +24,15 @@ export function useUser() {
         return null
       }
       
-      setUser(user)
-      return user
+      if (user) {
+        console.log('User session refreshed successfully', user.id)
+        setUser(user)
+        return user
+      } else {
+        console.log('No user found during refresh')
+        setUser(null)
+        return null
+      }
     } catch (error) {
       console.error('Unexpected error refreshing user:', error)
       setUser(null)
@@ -38,15 +46,25 @@ export function useUser() {
     // Load user on mount
     refreshUser()
     
-    // Setup auth state change listener
+    // Setup auth state change listener with proper types
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: string, _session) => {
-        console.log('Auth state change detected:', event)
+      async (event: AuthChangeEvent, session: Session | null) => {
+        console.log('Auth state change detected:', event, 'Session exists:', !!session)
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          const { data: { user } } = await supabase.auth.getUser()
-          setUser(user)
+          if (session?.user) {
+            console.log('Setting user from session:', session.user.id)
+            setUser(session.user)
+          } else {
+            // If no user in the session, try to get it directly
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+              console.log('Retrieved user directly:', user.id)
+              setUser(user)
+            }
+          }
         } else if (event === 'SIGNED_OUT') {
+          console.log('User signed out')
           setUser(null)
         }
       }

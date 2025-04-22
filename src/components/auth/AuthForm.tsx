@@ -112,27 +112,42 @@ export function AuthForm({ mode }: AuthFormProps) {
     setIsLoading(true)
     
     try {
-      // Simple and direct approach - minimal parameters to avoid being blocked
+      console.log('Starting Google OAuth flow with explicit options')
+      
+      // Clear any existing session first
+      await supabase.auth.signOut()
+      
+      // Use full absolute URL for the redirect
+      const redirectUrl = `${window.location.origin}/auth/callback`
+      console.log(`Setting redirect URL: ${redirectUrl}`)
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: redirectUrl,
+          queryParams: {
+            // Explicitly request a refresh token
+            access_type: 'offline',
+            // Always show account selection even if the user is already signed in
+            prompt: 'select_account'
+          },
+          // Make sure cookies are set in the browser
+          skipBrowserRedirect: false
         }
       })
       
       if (error) throw error
       
-      // Show a toast since we're about to redirect
-      toast.info('Redirecting to Google for authentication...')
-      
-      // We don't set isLoading to false since we're redirecting away
+      // Redirect is handled by Supabase now so we won't reach this point
+      // But add a toast just in case
+      toast.info('Redirecting to Google authentication...')
     } catch (err: unknown) {
+      setIsLoading(false)
       const errorMessage = err instanceof Error ? err.message : 'An error occurred during Google authentication'
       toast.error('Google authentication failed', {
         description: errorMessage,
       })
       console.error('Google auth error:', err)
-      setIsLoading(false)
     }
   }
   

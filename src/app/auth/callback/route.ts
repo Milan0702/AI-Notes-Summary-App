@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
 export async function GET(request: Request) {
   // The `/auth/callback` route is required for the server-side auth flow implemented
@@ -8,21 +10,39 @@ export async function GET(request: Request) {
   
   console.log('🔑 Auth callback hit. Code exists:', !!code)
   
-  // This is a crucial and direct response with two additional approaches:
+  if (!code) {
+    console.log('⚠️ No code provided in callback')
+    return NextResponse.redirect(new URL('/login?error=no_code', requestUrl.origin))
+  }
   
-  // 1. We add refresh=true to force a refresh of the page, which can help with session sync
-  const dashboardUrl = new URL('/dashboard', requestUrl.origin)
-  dashboardUrl.searchParams.set('refresh', 'true')
-  
-  // 2. We add a special flag to short-circuit middleware redirects if needed
-  dashboardUrl.searchParams.set('auth', 'callback')
-  
-  console.log('🚀 Redirecting to dashboard with refresh:', dashboardUrl.toString())
-  
-  const response = NextResponse.redirect(dashboardUrl)
-  
-  // 3. We bypass client-side caching to ensure fresh state
-  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate')
-  
-  return response
+  try {
+    // Use the Supabase route handler client which is optimized for this use case
+    const supabase = createRouteHandlerClient({ cookies })
+    
+    console.log('🔄 Exchanging code for session...')
+    await supabase.auth.exchangeCodeForSession(code)
+    
+    // Verify the session was created
+    const { data, error } = await supabase.auth.getSession()
+    
+    if (error) {
+      console.error('🚨 Session error:', error.message)
+      return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, requestUrl.origin))
+    }
+    
+    if (data?.session) {
+      console.log('✅ Session established successfully! User ID:', data.session.user.id)
+      
+      // Redirect to dashboard
+      const response = NextResponse.redirect(new URL('/dashboard', requestUrl.origin))
+      response.headers.set('Cache-Control', 'no-store, max-age=0')
+      return response
+    } else {
+      console.log('❌ No session created after code exchange')
+      return NextResponse.redirect(new URL('/login?error=session_creation_failed', requestUrl.origin))
+    }
+  } catch (error) {
+    console.error('❌ Error in auth callback:', error)
+    return NextResponse.redirect(new URL('/login?error=auth_error', requestUrl.origin))
+  }
 } 
