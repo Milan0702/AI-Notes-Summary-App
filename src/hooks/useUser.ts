@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -12,47 +12,64 @@ export function useUser() {
   const router = useRouter()
   const supabase = createClient()
 
-  useEffect(() => {
-    async function loadUser() {
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser()
-        
-        if (error) {
-          throw error
-        }
-        
-        setUser(user)
-      } catch (error) {
-        console.error('Error loading user:', error)
+  const refreshUser = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser()
+      
+      if (error) {
+        console.error('Error refreshing user:', error)
         setUser(null)
-      } finally {
-        setIsLoading(false)
+        return null
       }
+      
+      setUser(user)
+      return user
+    } catch (error) {
+      console.error('Unexpected error refreshing user:', error)
+      setUser(null)
+      return null
+    } finally {
+      setIsLoading(false)
     }
+  }, [supabase.auth])
 
-    loadUser()
+  useEffect(() => {
+    // Load user on mount
+    refreshUser()
     
     // Setup auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user || null)
+      async (event: string, _session) => {
+        console.log('Auth state change detected:', event)
+        
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          const { data: { user } } = await supabase.auth.getUser()
+          setUser(user)
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null)
+        }
       }
     )
 
     return () => {
       subscription.unsubscribe()
     }
-  }, [supabase.auth])
+  }, [supabase.auth, refreshUser])
 
   const logout = async () => {
     try {
+      setIsLoading(true)
       await supabase.auth.signOut()
+      setUser(null)
       router.push('/login')
       toast.success('Logged out successfully')
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       console.error('Error signing out:', error)
       toast.error(`Failed to log out: ${errorMessage}`)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -60,6 +77,7 @@ export function useUser() {
     user,
     isLoading,
     isLoggedIn: !!user,
+    refreshUser,
     logout
   }
 } 

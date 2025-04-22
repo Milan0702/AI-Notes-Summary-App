@@ -1,5 +1,3 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -10,26 +8,21 @@ export async function GET(request: Request) {
   
   console.log('🔑 Auth callback hit. Code exists:', !!code)
   
-  try {
-    if (code) {
-      // Create a Supabase client using the auth-helpers package for route handlers
-      // We need to pass the cookies function itself not the result of calling it
-      const supabase = createRouteHandlerClient({ cookies })
-    
-      console.log('🔄 Attempting code exchange...')
-      await supabase.auth.exchangeCodeForSession(code)
-      console.log('✅ Code exchange completed')
-      
-      // Return directly to dashboard to avoid middleware check issues
-      console.log('🚀 Redirecting to dashboard after successful auth')
-      return NextResponse.redirect(new URL('/dashboard', requestUrl.origin))
-    }
-  } catch (error) {
-    console.error('❌ Error in auth callback:', error)
-    // Continue to redirect even if there's an error
-  }
+  // This is a crucial and direct response with two additional approaches:
   
-  // If there's no code or an error occurred, redirect to login
-  console.log('⚠️ No code or error occurred, redirecting to login')
-  return NextResponse.redirect(new URL('/login', requestUrl.origin))
+  // 1. We add refresh=true to force a refresh of the page, which can help with session sync
+  const dashboardUrl = new URL('/dashboard', requestUrl.origin)
+  dashboardUrl.searchParams.set('refresh', 'true')
+  
+  // 2. We add a special flag to short-circuit middleware redirects if needed
+  dashboardUrl.searchParams.set('auth', 'callback')
+  
+  console.log('🚀 Redirecting to dashboard with refresh:', dashboardUrl.toString())
+  
+  const response = NextResponse.redirect(dashboardUrl)
+  
+  // 3. We bypass client-side caching to ensure fresh state
+  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate')
+  
+  return response
 } 

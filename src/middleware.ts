@@ -3,13 +3,21 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
   console.log('===== Middleware running for path:', pathname, '=====');
   
   // Special handling for auth callback - log but don't interfere
   if (pathname === '/auth/callback') {
     console.log('🔄 Auth callback detected - passing through without auth check');
     return NextResponse.next();
+  }
+  
+  // Check for special auth param coming from our callback
+  const isAuthCallback = searchParams.get('auth') === 'callback';
+  if (isAuthCallback) {
+    console.log('🔄 Auth callback redirect detected - bypassing middleware checks');
+    const cleanUrl = new URL(request.nextUrl.pathname, request.url);
+    return NextResponse.redirect(cleanUrl);
   }
   
   // Create a response object that we'll modify and return
@@ -58,7 +66,7 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Try to get the session directly - this is more reliable than the helper
+  // Try to get the session directly
   const { data: { session } } = await supabase.auth.getSession();
   
   // More detailed session logging

@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { Note } from '@/types'
 import { NotePayload } from '@/lib/notes-api'
 import { useNotes } from '@/hooks/useNotes'
@@ -24,7 +26,9 @@ import {
 import { cn } from '@/lib/utils'
 
 export default function DashboardPage() {
-  const { user, logout } = useUser()
+  const { user, logout, isLoading: isUserLoading } = useUser()
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const {
     notes,
     isLoadingNotes,
@@ -50,6 +54,49 @@ export default function DashboardPage() {
     content: string | null, 
     isLoading: boolean 
   } | null>(null)
+
+  // Handle auth callback params
+  useEffect(() => {
+    // Check for auth callback parameters
+    const isAuthCallback = searchParams.get('auth') === 'callback'
+    const refresh = searchParams.get('refresh') === 'true'
+    
+    if (isAuthCallback || refresh) {
+      console.log('Detected auth callback parameters, refreshing session...')
+      
+      // Clean up the URL by removing the parameters
+      router.replace('/dashboard')
+      
+      // Force a refresh of the user session
+      const refreshSession = async () => {
+        try {
+          const supabase = createClient()
+          const { data } = await supabase.auth.getSession()
+          console.log('Session refresh check:', !!data.session)
+          
+          // If no session is found after refresh param, redirect to login
+          if (!data.session && refresh) {
+            console.log('No session found after refresh attempt, redirecting to login')
+            router.replace('/login')
+          }
+        } catch (err) {
+          console.error('Error refreshing session:', err)
+        }
+      }
+      
+      refreshSession()
+    }
+  }, [searchParams, router])
+  
+  // Show loading state while session is being established
+  if (isUserLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <div className="animate-pulse rounded-full h-20 w-20 border-4 border-primary border-t-transparent"></div>
+        <p className="mt-4 text-muted-foreground">Loading your notes...</p>
+      </div>
+    )
+  }
 
   // Handlers
   const handleCreateClick = () => {
