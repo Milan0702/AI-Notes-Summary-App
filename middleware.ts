@@ -8,10 +8,6 @@ const publicRoutes = ['/', '/login', '/signup', '/auth/callback']
 export async function middleware(request: NextRequest) {
   // Update the session
   const response = await updateSession(request)
-
-  // Check if the user is authenticated
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   
   // Get the pathname from the URL
   const { pathname } = request.nextUrl

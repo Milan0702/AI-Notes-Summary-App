@@ -2,10 +2,8 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { toast } from 'sonner'
-import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -23,14 +21,10 @@ type AuthFormProps = {
   mode: 'login' | 'signup'
 }
 
-type Provider = 'google' | 'github';
-
 export function AuthForm({ mode }: AuthFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [authError, setAuthError] = useState<string | null>(null)
-  const router = useRouter()
   
   const supabase = createClientComponentClient()
   
@@ -40,7 +34,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     
     try {
       if (mode === 'login') {
-        const { error, data } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
           email,
           password
         })
@@ -51,11 +45,8 @@ export function AuthForm({ mode }: AuthFormProps) {
           description: 'Redirecting to your dashboard...',
         })
         
-        // Ensure user is logged in before redirecting
-        if (data?.session) {
-          // Use replace instead of push to avoid back button issues
-          router.replace('/dashboard')
-        }
+        // Ensure synchronous redirect happens
+        window.location.href = '/dashboard'
       } else {
         const { error, data } = await supabase.auth.signUp({
           email,
@@ -74,7 +65,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         // If auto-confirmation is enabled (development environments)
         if (data?.session) {
           setTimeout(() => {
-            router.replace('/dashboard')
+            window.location.href = '/dashboard'
           }, 2000)
         }
       }
@@ -93,11 +84,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            // Force the redirect to dashboard after authentication
-            redirect_to: `${window.location.origin}/dashboard`
-          }
+          redirectTo: `${window.location.origin}/auth/callback`
         }
       })
       
@@ -109,60 +96,6 @@ export function AuthForm({ mode }: AuthFormProps) {
       setIsLoading(false)
     }
   }
-  
-  // Handle OAuth sign in (Google, GitHub, etc.)
-  const handleOAuthSignIn = async (provider: Provider) => {
-    try {
-      setIsLoading(true);
-      setAuthError(null);
-      
-      // Sign in with the provider
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${location.origin}/auth/callback`,
-        },
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      // No state update needed here as we're being redirected
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      setAuthError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle email sign in
-  const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    try {
-      setIsLoading(true);
-      setAuthError(null);
-      
-      // Sign in with email
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      router.push('/dashboard');
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      setAuthError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
   
   return (
     <Card className="w-full max-w-md">
