@@ -117,6 +117,8 @@ export function NotesLayout({
   // Reset edit mode and summary view when note changes
   useEffect(() => {
     if (currentNote) {
+      console.log('NotesLayout received note:', currentNote.id, 'Title:', currentNote.title, 'Creating new note:', isCreatingNewNote);
+      
       // Auto-enter edit mode for new notes
       if (isCreatingNewNote) {
         setIsEditMode(true);
@@ -189,8 +191,8 @@ export function NotesLayout({
     
     const query = sidebarSearchQuery.toLowerCase();
     return allNotes.filter(note => 
-      (note.title?.toLowerCase().includes(query) || 
-       note.content?.toLowerCase().includes(query))
+      // Only search in the title
+      (note.title?.toLowerCase().includes(query))
     );
   }, [allNotes, sidebarSearchQuery]);
 

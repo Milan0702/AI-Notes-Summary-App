@@ -57,8 +57,8 @@ function DashboardContent() {
     
     const query = searchQuery.toLowerCase();
     return notes.filter(note => 
-      (note.title?.toLowerCase().includes(query) || 
-       note.content?.toLowerCase().includes(query))
+      // Only search in the title
+      (note.title?.toLowerCase().includes(query))
     );
   }, [notes, searchQuery]);
 
@@ -126,13 +126,16 @@ function DashboardContent() {
   }
 
   const handleViewClick = (note: Note) => {
-    console.log('View note clicked:', note.id);
+    console.log('View note clicked:', note.id, 'Title:', note.title);
+    
+    // Set the viewing note directly to ensure it opens
+    setViewingNote(note);
+    
+    // Also set transitioning for visual effect
     setIsTransitioning(true);
-    // Small delay to allow for smooth transition
     setTimeout(() => {
-      setViewingNote(note);
       setIsTransitioning(false);
-    }, 50);
+    }, 100);
   }
   
   const handleCloseViewNote = () => {
@@ -334,54 +337,57 @@ function DashboardContent() {
       
       {/* Full screen layout for viewing, editing and summarizing notes */}
       {(notes.length > 0 || isCreatingNewNote) && (
-        <NotesLayout
-          isActive={!!viewingNote}
-          currentNote={viewingNote}
-          allNotes={notes}
-          onClose={handleCloseViewNote}
-          onEdit={handleEditClick}
-          onSummarize={(note) => {
-            // Set initial state to show loading
-            setSummaryResult({
-              noteTitle: note.title || 'Untitled Note',
-              content: null,
-              isLoading: true
-            });
-            
-            // Call the API
-            summarizeNote({ noteId: note.id }, {
-              onSuccess: (data) => {
-                setSummaryResult(prev => ({
-                  ...prev!,
-                  content: data.summary,
-                  isLoading: false
-                }));
-              },
-              onError: (err) => {
-                let errorMessage = err.message;
-                
-                // Handle API limit errors specifically
-                if (errorMessage.includes('API usage limit') || 
-                    errorMessage.includes('quota exceeded') || 
-                    errorMessage.includes('payment required')) {
-                  errorMessage = 'API usage limit reached. The summarization feature is temporarily unavailable.';
+        <>
+          {console.log('Rendering NotesLayout with viewingNote:', !!viewingNote, viewingNote?.id)}
+          <NotesLayout
+            isActive={!!viewingNote}
+            currentNote={viewingNote}
+            allNotes={notes}
+            onClose={handleCloseViewNote}
+            onEdit={handleEditClick}
+            onSummarize={(note) => {
+              // Set initial state to show loading
+              setSummaryResult({
+                noteTitle: note.title || 'Untitled Note',
+                content: null,
+                isLoading: true
+              });
+              
+              // Call the API
+              summarizeNote({ noteId: note.id }, {
+                onSuccess: (data) => {
+                  setSummaryResult(prev => ({
+                    ...prev!,
+                    content: data.summary,
+                    isLoading: false
+                  }));
+                },
+                onError: (err) => {
+                  let errorMessage = err.message;
+                  
+                  // Handle API limit errors specifically
+                  if (errorMessage.includes('API usage limit') || 
+                      errorMessage.includes('quota exceeded') || 
+                      errorMessage.includes('payment required')) {
+                    errorMessage = 'API usage limit reached. The summarization feature is temporarily unavailable.';
+                  }
+                  
+                  setSummaryResult(prev => ({
+                    ...prev!,
+                    content: `Error: ${errorMessage}`,
+                    isLoading: false
+                  }));
                 }
-                
-                setSummaryResult(prev => ({
-                  ...prev!,
-                  content: `Error: ${errorMessage}`,
-                  isLoading: false
-                }));
-              }
-            });
-          }}
-          onSelectNote={setViewingNote}
-          onSaveNote={handleSaveNote}
-          isSaving={isCreatingNote || isUpdatingNote}
-          isSummarizing={summaryResult?.isLoading || false}
-          summary={summaryResult?.content || null}
-          isCreatingNewNote={isCreatingNewNote}
-        />
+              });
+            }}
+            onSelectNote={setViewingNote}
+            onSaveNote={handleSaveNote}
+            isSaving={isCreatingNote || isUpdatingNote}
+            isSummarizing={summaryResult?.isLoading || false}
+            summary={summaryResult?.content || null}
+            isCreatingNewNote={isCreatingNewNote}
+          />
+        </>
       )}
     </div>
   )
