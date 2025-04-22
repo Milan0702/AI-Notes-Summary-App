@@ -60,11 +60,13 @@ export function NoteCard({ note, onEdit, onDelete, onSummarize, onView }: NoteCa
   
   return (
     <Card className="h-full flex flex-col group relative overflow-hidden
-      hover:shadow-lg hover:border-primary/30 transition-all duration-300
+      shadow-md hover:shadow-xl transition-all duration-300
       bg-gradient-to-br from-card to-card/90 hover:from-card/95 hover:to-card
       before:absolute before:inset-0 before:bg-gradient-to-r before:from-primary/0 before:to-primary/5 before:opacity-0
       hover:before:opacity-100 before:transition-opacity before:duration-500 before:pointer-events-none
-      transform hover:-translate-y-1"
+      transform hover:-translate-y-1.5 active:translate-y-0 active:shadow-md
+      after:absolute after:inset-0 after:rounded-lg after:border-2 after:border-primary/0 after:transition-all
+      hover:after:border-primary/20 after:opacity-0 hover:after:opacity-100"
     >
       <CardHeader className="pb-2 flex flex-row justify-between items-start space-y-0">
         <div>

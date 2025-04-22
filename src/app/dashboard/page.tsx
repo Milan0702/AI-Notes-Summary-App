@@ -217,7 +217,14 @@ export default function DashboardPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="z-[60]">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
+              {user?.email && (
+                <>
+                  <span className="px-2 py-1 text-xs text-muted-foreground block truncate max-w-[200px]">
+                    {user.email}
+                  </span>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem onClick={logout} className="text-destructive cursor-pointer">
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
