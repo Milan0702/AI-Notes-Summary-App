@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,7 +26,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
   
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -70,16 +70,11 @@ export function AuthForm({ mode }: AuthFormProps) {
         }
       }
     } catch (err: unknown) {
-<<<<<<< HEAD
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
-      toast.error(errorMessage)
-=======
       const errorMessage = err instanceof Error ? err.message : 'An error occurred during authentication';
       toast.error('Authentication failed', {
         description: errorMessage,
       })
       console.error(err)
->>>>>>> 81d56dd (Fixed unused code issues)
     } finally {
       setIsLoading(false)
     }
@@ -98,16 +93,11 @@ export function AuthForm({ mode }: AuthFormProps) {
       
       if (error) throw error
     } catch (err: unknown) {
-<<<<<<< HEAD
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
-      toast.error(errorMessage)
-=======
       const errorMessage = err instanceof Error ? err.message : 'An error occurred during Google authentication';
       toast.error('Google authentication failed', {
         description: errorMessage,
       })
       console.error(err)
->>>>>>> 81d56dd (Fixed unused code issues)
     } finally {
       setIsLoading(false)
     }
