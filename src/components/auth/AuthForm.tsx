@@ -48,6 +48,8 @@ export function AuthForm({ mode }: AuthFormProps) {
         // Ensure synchronous redirect happens
         window.location.href = '/dashboard'
       } else {
+        console.log('Starting signup process for:', email)
+        
         const { error, data } = await supabase.auth.signUp({
           email,
           password,
@@ -56,25 +58,51 @@ export function AuthForm({ mode }: AuthFormProps) {
           }
         })
         
+        console.log('Signup response:', { 
+          user: data?.user ? `ID: ${data.user.id}` : null,
+          session: !!data?.session,
+          confirmationSent: data?.user?.identities?.[0]?.identity_data?.email_confirmed_at ? 'Already confirmed' : 'Pending',
+          error: error?.message
+        })
+        
         if (error) throw error
         
-        toast.success('Account created', {
-          description: 'Check your email for verification link.',
-        })
+        if (data?.user?.identities?.length === 0) {
+          toast.error('Account already exists', {
+            description: 'Please login instead or use a different email.',
+          })
+        } else {
+          toast.success('Account created', {
+            description: `Verification email sent to ${email}. Please check your inbox and spam folder.`,
+            duration: 6000,
+          })
+          
+          // Clear form after successful signup
+          setEmail('')
+          setPassword('')
+        }
         
         // If auto-confirmation is enabled (development environments)
         if (data?.session) {
+          console.log('Auto-confirmation detected - redirecting to dashboard')
           setTimeout(() => {
             window.location.href = '/dashboard'
           }, 2000)
         }
       }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred during authentication';
-      toast.error('Authentication failed', {
+      let errorMessage = 'An error occurred during authentication'
+      
+      if (err instanceof Error) {
+        errorMessage = err.message
+        console.error(`Auth error (${mode}):`, err)
+      } else {
+        console.error(`Unknown auth error (${mode}):`, err)
+      }
+      
+      toast.error(`${mode === 'login' ? 'Login' : 'Signup'} failed`, {
         description: errorMessage,
       })
-      console.error(err)
     } finally {
       setIsLoading(false)
     }
@@ -84,27 +112,22 @@ export function AuthForm({ mode }: AuthFormProps) {
     setIsLoading(true)
     
     try {
-      console.log('Starting Google OAuth flow')
-      const redirectUrl = `${window.location.origin}/auth/callback`
-      console.log('Redirect URL:', redirectUrl)
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      // Simple and direct approach - minimal parameters to avoid being blocked
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectUrl,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
+          redirectTo: `${window.location.origin}/auth/callback`
         }
       })
       
       if (error) throw error
-      console.log('OAuth initiated successfully', data)
       
-      // No need to set isLoading false as we're redirecting away
+      // Show a toast since we're about to redirect
+      toast.info('Redirecting to Google for authentication...')
+      
+      // We don't set isLoading to false since we're redirecting away
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred during Google authentication';
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred during Google authentication'
       toast.error('Google authentication failed', {
         description: errorMessage,
       })
