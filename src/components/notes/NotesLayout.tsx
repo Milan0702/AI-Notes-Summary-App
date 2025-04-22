@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Note } from '@/types'
 import { format } from 'date-fns'
-import { X, Pencil, Sparkles, ChevronLeft, ChevronRight, FileText, ArrowLeft, Menu, Save, Loader2, AlertTriangle } from 'lucide-react'
+import { X, Pencil, Sparkles, ChevronLeft, ChevronRight, FileText, ArrowLeft, Menu, Save, Loader2, AlertTriangle, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
@@ -48,6 +48,7 @@ export function NotesLayout({
   const [editTitle, setEditTitle] = useState('')
   const [editContent, setEditContent] = useState('')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [sidebarSearchQuery, setSidebarSearchQuery] = useState('')
   
   const contentRef = useRef<HTMLDivElement>(null)
   const editContentRef = useRef<HTMLTextAreaElement>(null)
@@ -176,6 +177,17 @@ export function NotesLayout({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isActive, onClose, isEditMode, isSummaryVisible, currentNote, hasUnsavedChanges, handleCancelEdit, handleSaveClick]);
 
+  // Filter notes for sidebar
+  const filteredSidebarNotes = useMemo(() => {
+    if (!sidebarSearchQuery.trim()) return allNotes;
+    
+    const query = sidebarSearchQuery.toLowerCase();
+    return allNotes.filter(note => 
+      (note.title?.toLowerCase().includes(query) || 
+       note.content?.toLowerCase().includes(query))
+    );
+  }, [allNotes, sidebarSearchQuery]);
+
   if (!currentNote || !isActive) return null;
 
   const toggleSidebar = () => {
@@ -221,6 +233,21 @@ export function NotesLayout({
     }
   }
 
+  // Handle creating a new note from sidebar
+  const handleCreateNewNote = () => {
+    // Create an empty note template and pass to parent component
+    const newNoteTemplate: Note = {
+      id: 'new',
+      title: '',
+      content: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      user_id: currentNote?.user_id || ''
+    };
+    
+    onSelectNote(newNoteTemplate);
+  }
+
   return (
     <div className={cn(
       "fixed inset-0 bg-background z-30 flex flex-col transition-all duration-300",
@@ -254,16 +281,51 @@ export function NotesLayout({
             </Button>
           </div>
           <Separator />
-          <ScrollArea className="h-[calc(100%-49px)]">
-            {!sidebarCollapsed && (
+          <ScrollArea className="h-[calc(100%-48px)]">
+            {!sidebarCollapsed ? (
               <div className="p-2 space-y-1">
-                {allNotes.map((note) => (
+                {/* Search input */}
+                <div className="relative mb-3 px-1">
+                  <Input
+                    type="text"
+                    placeholder="Search notes..."
+                    value={sidebarSearchQuery}
+                    onChange={(e) => setSidebarSearchQuery(e.target.value)}
+                    className="bg-background/50 border-muted text-sm"
+                  />
+                  {sidebarSearchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5"
+                      onClick={() => setSidebarSearchQuery('')}
+                    >
+                      <X className="h-3 w-3" />
+                      <span className="sr-only">Clear search</span>
+                    </Button>
+                  )}
+                </div>
+                
+                {/* Create new note button */}
+                <div
+                  className="px-3 py-2 rounded-md cursor-pointer text-sm transition-colors duration-200
+                    bg-primary/10 hover:bg-primary/20 text-primary font-medium flex items-center gap-2 mb-3"
+                  onClick={handleCreateNewNote}
+                >
+                  <Plus className="h-4 w-4 flex-shrink-0" />
+                  <span className="line-clamp-1 flex-grow">
+                    New Note
+                  </span>
+                </div>
+
+                {/* Note list items */}
+                {filteredSidebarNotes.map((note) => (
                   <div
                     key={note.id}
                     className={cn(
                       "px-3 py-2 rounded-md cursor-pointer text-sm transition-colors duration-200",
                       "hover:bg-muted flex items-center gap-2",
-                      note.id === currentNote.id ? "bg-muted text-foreground" : "text-muted-foreground"
+                      note.id === currentNote?.id ? "bg-muted text-foreground" : "text-muted-foreground"
                     )}
                     onClick={() => {
                       onSelectNote(note);
@@ -278,11 +340,30 @@ export function NotesLayout({
                     </span>
                   </div>
                 ))}
+                
+                {/* Show empty state if no notes found after search */}
+                {allNotes.length > 0 && filteredSidebarNotes.length === 0 && (
+                  <div className="p-4 text-center text-muted-foreground text-xs">
+                    No notes found matching &quot;{sidebarSearchQuery}&quot;
+                  </div>
+                )}
               </div>
-            )}
-            {sidebarCollapsed && (
+            ) : (
               <div className="py-2 px-0.5 overflow-hidden">
-                {allNotes.map((note) => (
+                {/* Add new note button in collapsed mode */}
+                <div
+                  className="flex flex-col items-center px-1 py-2 cursor-pointer transition-colors duration-200 text-center mb-3 rounded bg-primary/10 hover:bg-primary/20 text-primary"
+                  onClick={handleCreateNewNote}
+                  title="New Note"
+                >
+                  <Plus className="h-4 w-4 mb-1" />
+                  <span className="text-[8px] md:text-[9px] font-medium">
+                    New
+                  </span>
+                </div>
+                
+                {/* Collapsed note list */}
+                {filteredSidebarNotes.map((note) => (
                   <div
                     key={note.id}
                     className={cn(

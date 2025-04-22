@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Note } from '@/types'
@@ -9,13 +9,15 @@ import { useNotes } from '@/hooks/useNotes'
 import { useUser } from '@/hooks/useUser'
 import { useSummarizeNote } from '@/hooks/useSummarize'
 import { NoteCard } from '@/components/notes/NoteCard'
+import { NewNoteCard } from '@/components/notes/NewNoteCard'
 import { NotesLayout } from '@/components/notes/NotesLayout'
 import { DeleteConfirmationDialog } from '@/components/notes/DeleteConfirmationDialog'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AppHeader } from '@/components/AppHeader'
+import { NotesSearch } from '@/components/notes/NotesSearch'
 
 // Dashboard content component that uses useSearchParams
 function DashboardContent() {
@@ -40,6 +42,7 @@ function DashboardContent() {
   const [viewingNote, setViewingNote] = useState<Note | null>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [isCreatingNewNote, setIsCreatingNewNote] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   
   // Summary state
   const [summaryResult, setSummaryResult] = useState<{ 
@@ -47,6 +50,17 @@ function DashboardContent() {
     content: string | null, 
     isLoading: boolean 
   } | null>(null)
+
+  // Filtered notes based on search query
+  const filteredNotes = useMemo(() => {
+    if (!searchQuery.trim()) return notes;
+    
+    const query = searchQuery.toLowerCase();
+    return notes.filter(note => 
+      (note.title?.toLowerCase().includes(query) || 
+       note.content?.toLowerCase().includes(query))
+    );
+  }, [notes, searchQuery]);
 
   // Handle auth callback params
   useEffect(() => {
@@ -195,17 +209,9 @@ function DashboardContent() {
         viewingNote ? "lg:opacity-0 lg:pointer-events-none" : "opacity-100",
         isTransitioning ? "opacity-50" : ""
       )}>
-        {/* New Note button at the top */}
-        <div className="mb-6 flex justify-end">
-          <Button
-            onClick={handleCreateClick}
-            variant="default"
-            className="shadow-sm hover:shadow-md transition-shadow duration-200 flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">New Note</span>
-            <span className="sm:hidden">New</span>
-          </Button>
+        {/* Search bar for notes */}
+        <div className="mb-6">
+          <NotesSearch onSearch={setSearchQuery} placeholder="Search your notes..." />
         </div>
         
         {isLoadingNotes ? (
@@ -219,7 +225,7 @@ function DashboardContent() {
             <p className="text-destructive mb-4">Error loading notes: {fetchError.message}</p>
             <Button onClick={() => window.location.reload()} variant="outline">Try Again</Button>
           </div>
-        ) : notes.length > 0 ? (
+        ) : (
           <div 
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 animate-fade-in"
             style={{
@@ -227,12 +233,25 @@ function DashboardContent() {
               animationFillMode: 'both',
             }}
           >
-            {notes.map((note, index) => (
+            {/* New Note Card - always first in grid */}
+            <div 
+              className="opacity-0 animate-fade-in" 
+              style={{
+                animationDelay: '0s',
+                animationDuration: '0.5s',
+                animationFillMode: 'forwards',
+              }}
+            >
+              <NewNoteCard onClick={handleCreateClick} />
+            </div>
+            
+            {/* Existing Notes */}
+            {filteredNotes.map((note, index) => (
               <div
                 key={note.id}
                 className="opacity-0 animate-fade-in"
                 style={{
-                  animationDelay: `${index * 0.05}s`,
+                  animationDelay: `${(index + 1) * 0.05}s`,
                   animationDuration: '0.5s',
                   animationFillMode: 'forwards',
                 }}
@@ -282,38 +301,27 @@ function DashboardContent() {
                 />
               </div>
             ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-16 px-4">
-            <div className="w-16 h-16 mb-4 bg-muted rounded-full flex items-center justify-center">
-              <Plus className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <p className="text-xl text-muted-foreground mb-4 text-center">
-              No notes yet. Create your first one!
-            </p>
-            <Button 
-              onClick={handleCreateClick} 
-              className="shadow-sm hover:shadow-md transition-shadow duration-200"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First Note
-            </Button>
+            
+            {/* Show empty state if no notes found after search */}
+            {notes.length > 0 && filteredNotes.length === 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center py-16 px-4">
+                <div className="w-16 h-16 mb-4 bg-muted rounded-full flex items-center justify-center">
+                  <Search className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <p className="text-xl text-muted-foreground mb-4 text-center">
+                  No notes found matching &quot;{searchQuery}&quot;
+                </p>
+                <Button 
+                  onClick={() => setSearchQuery('')} 
+                  variant="outline"
+                >
+                  Clear Search
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </main>
-
-      {/* Mobile Floating Action Button */}
-      <Button
-        onClick={handleCreateClick}
-        className={cn(
-          "fixed bottom-6 right-6 rounded-full shadow-lg w-14 h-14 p-0 md:hidden z-20",
-          "animate-pulse-subtle bg-primary hover:bg-primary/90 transition-all",
-          viewingNote ? "opacity-0 pointer-events-none" : "opacity-100"
-        )}
-      >
-        <Plus className="h-6 w-6" />
-        <span className="sr-only">New Note</span>
-      </Button>
 
       {/* Delete confirmation dialog - keep this one as it's still useful */}
       <DeleteConfirmationDialog
