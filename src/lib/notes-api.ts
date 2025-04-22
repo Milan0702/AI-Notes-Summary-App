@@ -1,9 +1,6 @@
 import { createClient } from '@/lib/supabase/client'; // Use client component client
 import { Note } from '@/types'; // Import the Note type
-<<<<<<< HEAD
-=======
 // import { PostgrestError } from '@supabase/supabase-js';
->>>>>>> 81d56dd (Fixed unused code issues)
 
 const supabase = createClient();
 
