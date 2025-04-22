@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Note } from '@/types'
 import { format } from 'date-fns'
 import { X, Pencil, Sparkles, ChevronLeft, ChevronRight, FileText, ArrowLeft, Menu, Save, Loader2, AlertTriangle } from 'lucide-react'
@@ -53,6 +53,36 @@ export function NotesLayout({
   const editContentRef = useRef<HTMLTextAreaElement>(null)
   const summaryRef = useRef<HTMLDivElement>(null)
 
+  const resetEditState = useCallback(() => {
+    if (currentNote) {
+      setEditTitle(currentNote.title || '');
+      setEditContent(currentNote.content || '');
+      setIsEditMode(false);
+      setHasUnsavedChanges(false);
+    }
+  }, [currentNote]);
+
+  const handleSaveClick = useCallback(() => {
+    if (currentNote) {
+      onSaveNote(currentNote.id, {
+        title: editTitle,
+        content: editContent
+      });
+      setHasUnsavedChanges(false);
+      setIsEditMode(false);
+    }
+  }, [currentNote, editTitle, editContent, onSaveNote]);
+
+  const handleCancelEdit = useCallback(() => {
+    if (hasUnsavedChanges) {
+      if (window.confirm('You have unsaved changes. Are you sure you want to discard them?')) {
+        resetEditState();
+      }
+    } else {
+      resetEditState();
+    }
+  }, [hasUnsavedChanges, resetEditState]);
+
   // Check screen size on mount and window resize
   useEffect(() => {
     const checkScreenSize = () => {
@@ -97,7 +127,7 @@ export function NotesLayout({
     if (contentRef.current) {
       contentRef.current.scrollTop = 0;
     }
-  }, [currentNote?.id]);
+  }, [currentNote]);
 
   // Check for unsaved changes
   useEffect(() => {
@@ -144,7 +174,7 @@ export function NotesLayout({
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, onClose, isEditMode, isSummaryVisible, currentNote, hasUnsavedChanges]);
+  }, [isActive, onClose, isEditMode, isSummaryVisible, currentNote, hasUnsavedChanges, handleCancelEdit, handleSaveClick]);
 
   if (!currentNote || !isActive) return null;
 
@@ -170,36 +200,6 @@ export function NotesLayout({
         editContentRef.current.focus();
       }
     }, 0);
-  }
-
-  const handleSaveClick = () => {
-    if (currentNote) {
-      onSaveNote(currentNote.id, {
-        title: editTitle,
-        content: editContent
-      });
-      setHasUnsavedChanges(false);
-      setIsEditMode(false);
-    }
-  }
-
-  const handleCancelEdit = () => {
-    if (hasUnsavedChanges) {
-      if (window.confirm('You have unsaved changes. Are you sure you want to discard them?')) {
-        resetEditState();
-      }
-    } else {
-      resetEditState();
-    }
-  }
-
-  const resetEditState = () => {
-    if (currentNote) {
-      setEditTitle(currentNote.title || '');
-      setEditContent(currentNote.content || '');
-      setIsEditMode(false);
-      setHasUnsavedChanges(false);
-    }
   }
 
   const handleSummarizeClick = () => {
