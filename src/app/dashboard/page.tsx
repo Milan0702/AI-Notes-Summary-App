@@ -1,10 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-<<<<<<< HEAD
-=======
-
->>>>>>> 81d56dd (Fixed unused code issues)
 import { Note } from '@/types'
 import { NotePayload } from '@/lib/notes-api'
 import { useNotes } from '@/hooks/useNotes'
