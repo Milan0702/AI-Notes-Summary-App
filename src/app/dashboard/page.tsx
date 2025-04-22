@@ -126,6 +126,7 @@ function DashboardContent() {
   }
 
   const handleViewClick = (note: Note) => {
+    console.log('View note clicked:', note.id);
     setIsTransitioning(true);
     // Small delay to allow for smooth transition
     setTimeout(() => {

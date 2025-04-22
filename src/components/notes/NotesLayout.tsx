@@ -117,7 +117,13 @@ export function NotesLayout({
   // Reset edit mode and summary view when note changes
   useEffect(() => {
     if (currentNote) {
-      setIsEditMode(false);
+      // Auto-enter edit mode for new notes
+      if (isCreatingNewNote) {
+        setIsEditMode(true);
+      } else {
+        setIsEditMode(false);
+      }
+      
       setIsSummaryVisible(false);
       setEditTitle(currentNote.title || '');
       setEditContent(currentNote.content || '');
@@ -128,7 +134,7 @@ export function NotesLayout({
     if (contentRef.current) {
       contentRef.current.scrollTop = 0;
     }
-  }, [currentNote]);
+  }, [currentNote, isCreatingNewNote]);
 
   // Check for unsaved changes
   useEffect(() => {

@@ -51,10 +51,14 @@ export function NoteCard({ note, onEdit, onDelete, onSummarize, onView }: NoteCa
     
     document.body.appendChild(ripple);
     
+    // Call onView immediately, don't wait for animation
+    onView(note);
+    
     // Remove ripple after animation completes
     setTimeout(() => {
-      document.body.removeChild(ripple);
-      onView(note);
+      if (document.body.contains(ripple)) {
+        document.body.removeChild(ripple);
+      }
     }, 300);
   }
   
