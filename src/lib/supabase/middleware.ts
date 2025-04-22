@@ -1,10 +1,12 @@
 // src/lib/supabase/middleware.ts
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient,  } from '@supabase/ssr'
 import { type NextRequest, NextResponse } from 'next/server'
+import { type User } from '@supabase/supabase-js' // Import User type
 
-export async function updateSession(request: NextRequest) {
+// Update return type
+export async function updateSession(request: NextRequest): Promise<{ response: NextResponse; user: User | null }> {
   // Create a response that we'll modify later
-  const response = NextResponse.next({
+  const response = NextResponse.next({ // Use let as we might reassign
     request: {
       headers: request.headers,
     },
@@ -18,38 +20,36 @@ export async function updateSession(request: NextRequest) {
         get(name) {
           return request.cookies.get(name)?.value
         },
-        set(name, value, 
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          options: CookieOptions
-        ) {
-          // Set the cookie in the request (for logging purposes)
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-          
-          // Set the cookie in the response (for browser)
+        set(name, value, options) {
+          // *** Important: Clone response when setting cookies ***
+          // Create a mutable clone of the request headers if needed (though less common to modify request here)
+          // request.headers are read-only, clone if mutation is needed
+          // response.cookies.set can directly modify the response object
+
+          // Re-assign response to ensure modifications are captured if needed within loop/callbacks
+          // but setting cookies on the original response object should work directly
           response.cookies.set({
             name,
             value,
             ...options,
           })
         },
-        remove(name, 
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          _options: CookieOptions
-        ) {
-          // Remove cookies by setting them with an expired date
-          request.cookies.delete(name);
-          response.cookies.delete(name);
+        remove(name, options) {
+          // *** Important: Clone response when removing cookies ***
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+            maxAge: 0,
+          })
         },
       },
     }
   )
 
-  // IMPORTANT: Refresh session to ensure it's up-to-date
-  await supabase.auth.getUser()
+  // IMPORTANT: Refresh session AND get user data
+  const { data: { user } } = await supabase.auth.getUser(); // This call updates cookies via set/remove above
 
-  return response
+  // Return both the response and the user object
+  return { response, user };
 }
